@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/MilkyC/Brainium/challenges"
+	"github.com/MilkyC/Brainium/db"
 	"time"
 )
 
@@ -17,10 +18,11 @@ func main() {
 		ticker: time.NewTicker(time.Millisecond * 1000),
 	}
 	seed := int64(time.Now().Unix())
-	mc := challenges.NewMathChallenge(seed)
-
+	mc := challenges.MakeMathChallenge(seed)
+	mr := db.NewMathResult()
 	for true {
-		userDone := make(chan bool, 1)
+		mp := mc.GetProblem()
+		userDone := make(chan int64, 1)
 		countdownDone := make(chan bool, 1)
 		go func(countdownDone chan<- bool) {
 			for range countdowner.ticker.C {
@@ -32,8 +34,7 @@ func main() {
 			}
 		}(countdownDone)
 
-		go func(userDone chan<- bool) {
-			mp := mc.GetProblem()
+		go func(userDone chan<- int64) {
 			fmt.Printf("%d %s %d\n", mp.Value1, mp.Symbol, mp.Value2)
 			var input int64
 			_, err := fmt.Scanln(&input)
@@ -41,25 +42,25 @@ func main() {
 				fmt.Println("Error: ", err)
 			}
 			fmt.Println("Input: ", input)
-			solution := mp.Solution()
-			if input == solution {
-				fmt.Println("Correct!")
-			} else {
-				fmt.Println("Wrong! Expected Answer:", solution)
-			}
-			userDone <- true
+			userDone <- input
 		}(userDone)
 
 		finished := false
-
 		for !finished {
 			select {
 			case <-countdownDone:
 				fmt.Println("countdown finished first")
 				finished = true
-			case <-userDone:
+			case answer := <-userDone:
 				fmt.Println("user finished first")
+				solution := mp.Solution()
+				if answer == solution {
+					fmt.Println("Correct!")
+				} else {
+					fmt.Println("Wrong! Expected Answer:", solution)
+				}
 				finished = true
+				mr.Save((answer == solution), countdowner.count, answer)
 			}
 		}
 		countdowner.count = 0

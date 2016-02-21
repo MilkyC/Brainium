@@ -34,8 +34,8 @@ func (mc *MathChallenge) getRandomInt() int {
 	return rand.Intn(100)
 }
 
-// NewMathChallenge wrapper for creating a math challenge.
-func NewMathChallenge(seed int64) MathChallenge {
+// MakeMathChallenge wrapper for creating a math challenge.
+func MakeMathChallenge(seed int64) MathChallenge {
 	return MathChallenge{seed: seed, seeded: false}
 }
 
